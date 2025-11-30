@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HIT - Where Startups Meet Investors</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
         * {
             margin: 0;
@@ -430,6 +432,8 @@
         /* --- CTA & FOOTER --- */
         .cta-section { padding: 80px 20px; max-width: 1000px; margin: 0 auto; }
         
+        .about-section, .contact-section { padding: 80px 20px; max-width: 1000px; margin: 0 auto; }
+        
         .cta-card {
             padding: 60px 40px;
             border-radius: 32px;
@@ -505,7 +509,7 @@
             .timeline::before { left: 20px; }
             .timeline-item { flex-direction: column !important; align-items: flex-start; margin-bottom: 40px; }
             .timeline-item:nth-child(even) { flex-direction: column !important; }
-            .timeline-content { width: 100%; margin-left: 50px; padding: 20px; width: calc(100% - 50px); }
+            .timeline-content { width: calc(100% - 50px); margin-left: 50px; padding: 20px; }
             .timeline-number { left: 20px; top: 0; width: 40px; height: 40px; font-size: 18px; }
             
             h1 { font-size: 42px; }
@@ -528,8 +532,8 @@
                 <li><a href="#about" onclick="toggleMenu()">About</a></li>
                 <li><a href="#contact" onclick="toggleMenu()">Contact</a></li>
             </ul>
-            <button class="cta-button">Get Started</button>
-            <button class="mobile-menu-btn" onclick="toggleMenu()">☰</button>
+            <button type="button" class="cta-button">Get Started</button>
+            <button type="button" class="mobile-menu-btn" onclick="toggleMenu()">☰</button>
         </div>
     </nav>
 
@@ -546,8 +550,8 @@
                 Empower Egyptian startups with community-driven investment. Hit on your favorite investor, support the startups you believe in, and be part of Egypt's innovation revolution.
             </p>
             <div class="hero-buttons">
-                <button class="primary-btn">Join as Startup</button>
-                <button class="secondary-btn">Become an Investor</button>
+                <button type="button" class="primary-btn">Join as Startup</button>
+                <button type="button" class="secondary-btn">Become an Investor</button>
             </div>
         </div>
     </section>
@@ -659,7 +663,27 @@
         <div class="cta-card">
             <h2>Ready to Shape Egypt's Future?</h2>
             <p style="margin-bottom: 30px; margin-top: 10px; color: rgba(0,0,0,0.7);">Join thousands of entrepreneurs, investors, and supporters building the next generation of Egyptian startups.</p>
-            <button class="primary-btn" style="background:#000;">Download HIT App</button>
+            <button type="button" class="primary-btn" style="background:#000;">Download HIT App</button>
+        </div>
+    </section>
+
+    <section class="about-section" id="about">
+        <div class="section-header">
+            <span class="section-tag">About Us</span>
+            <h2>Our <span class="gradient-text">Mission</span></h2>
+            <p style="color:var(--text-secondary); max-width:600px; margin:0 auto;">
+                HIT is Egypt's first community-driven startup investment platform. We believe that everyone should have the power to support the entrepreneurs shaping our future. Our mission is to democratize startup funding by connecting visionary founders with passionate investors and supporters across Egypt.
+            </p>
+        </div>
+    </section>
+
+    <section class="contact-section" id="contact">
+        <div class="section-header">
+            <span class="section-tag">Get In Touch</span>
+            <h2>Contact <span class="gradient-text">Us</span></h2>
+            <p style="color:var(--text-secondary); max-width:600px; margin:0 auto;">
+                Have questions or want to learn more about HIT? Reach out to our team and we'll get back to you as soon as possible.
+            </p>
         </div>
     </section>
 
@@ -740,8 +764,11 @@
 
         // 3. Mobile Menu Toggle
         function toggleMenu() {
-            const navLinks = document.querySelector('.nav-links');
-            navLinks.classList.toggle('active');
+            // Only toggle on mobile (max-width: 768px)
+            if (window.innerWidth <= 768) {
+                const navLinks = document.querySelector('.nav-links');
+                navLinks.classList.toggle('active');
+            }
         }
 
         // 4. Navbar Scroll Effect
