@@ -730,6 +730,7 @@
 
         // Smooth follow loop using requestAnimationFrame
         function animateGlow() {
+            if (!glow) return;
             glowX += (mouseX - glowX) * 0.1;
             glowY += (mouseY - glowY) * 0.1;
             glow.style.left = glowX + 'px';
