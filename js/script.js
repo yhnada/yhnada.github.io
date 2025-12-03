@@ -1,37 +1,60 @@
-// 1. Efficient Particle Generator
+// 1. Efficient Particle Generator (Reduced count for performance)
 const particlesContainer = document.getElementById('particles');
-for (let i = 0; i < 30; i++) {
-    const particle = document.createElement('div');
-    particle.className = 'particle';
-    const size = Math.random() * 80 + 20;
-    particle.style.width = `${size}px`;
-    particle.style.height = `${size}px`;
-    particle.style.left = `${Math.random() * 100}%`;
-    particle.style.top = `${Math.random() * 100}%`;
-    particle.style.animationDelay = `${Math.random() * 20}s`;
-    particle.style.animationDuration = `${Math.random() * 10 + 15}s`;
-    particlesContainer.appendChild(particle);
+const isMobile = window.innerWidth < 768;
+const particleCount = isMobile ? 10 : 20; // Reduced from 30
+
+if (particlesContainer) {
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        const size = Math.random() * 60 + 20; // Slightly smaller
+        particle.style.cssText = `
+            width: ${size}px;
+            height: ${size}px;
+            left: ${Math.random() * 100}%;
+            top: ${Math.random() * 100}%;
+            animation-delay: ${Math.random() * 20}s;
+            animation-duration: ${Math.random() * 10 + 15}s;
+        `;
+        particlesContainer.appendChild(particle);
+    }
 }
 
-// 2. Optimized Cursor Glow (No Crash)
+// 2. Optimized Cursor Glow (Disabled on mobile/touch devices)
 const glow = document.querySelector('.cursor-glow');
 let mouseX = 0, mouseY = 0;
 let glowX = 0, glowY = 0;
+let glowAnimationId = null;
 
-document.addEventListener('mousemove', (e) => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-});
+// Only enable on non-touch devices
+const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-// Smooth follow loop using requestAnimationFrame
-function animateGlow() {
-    glowX += (mouseX - glowX) * 0.1;
-    glowY += (mouseY - glowY) * 0.1;
-    glow.style.left = glowX + 'px';
-    glow.style.top = glowY + 'px';
-    requestAnimationFrame(animateGlow);
+if (glow && !hasTouch && !isMobile) {
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    }, { passive: true });
+
+    function animateGlow() {
+        glowX += (mouseX - glowX) * 0.08; // Slightly slower for smoother effect
+        glowY += (mouseY - glowY) * 0.08;
+        glow.style.transform = `translate(${glowX - 150}px, ${glowY - 150}px)`;
+        glowAnimationId = requestAnimationFrame(animateGlow);
+    }
+    animateGlow();
+    
+    // Pause animation when tab is not visible
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && glowAnimationId) {
+            cancelAnimationFrame(glowAnimationId);
+        } else if (!document.hidden) {
+            animateGlow();
+        }
+    });
+} else if (glow) {
+    // Hide cursor glow on mobile
+    glow.style.display = 'none';
 }
-animateGlow();
 
 // 3. Mobile Menu Toggle
 function toggleMenu() {
@@ -39,12 +62,24 @@ function toggleMenu() {
     navLinks.classList.toggle('active');
 }
 
-// 4. Navbar Scroll Effect
+// 4. Navbar Scroll Effect (Throttled for performance)
 const nav = document.getElementById('nav');
-window.addEventListener('scroll', () => {
+let lastScrollY = 0;
+let ticking = false;
+
+function updateNav() {
     if (window.scrollY > 50) nav.classList.add('scrolled');
     else nav.classList.remove('scrolled');
-});
+    ticking = false;
+}
+
+window.addEventListener('scroll', () => {
+    lastScrollY = window.scrollY;
+    if (!ticking) {
+        requestAnimationFrame(updateNav);
+        ticking = true;
+    }
+}, { passive: true });
 
 // 5. Intersection Observer for Animations
 const observer = new IntersectionObserver((entries) => {
@@ -377,46 +412,54 @@ if (investorForm) {
     });
 }
 
-// 14. Parallax Deal Flow Effect
+// 14. Parallax Deal Flow Effect (Throttled)
 const dealFlowTrack = document.getElementById('dealFlowTrack');
 if (dealFlowTrack) {
     const dealFlowSection = document.querySelector('.deal-flow-section');
+    let parallaxTicking = false;
     
-    window.addEventListener('scroll', () => {
+    function updateParallax() {
         const rect = dealFlowSection.getBoundingClientRect();
         const windowHeight = window.innerHeight;
         
         // Check if section is in view
         if (rect.top < windowHeight && rect.bottom > 0) {
-            // Calculate scroll progress through the section
             const sectionStart = rect.top - windowHeight;
             const sectionEnd = rect.bottom;
             const scrollProgress = Math.abs(sectionStart) / (Math.abs(sectionStart) + sectionEnd);
             
-            // Move the track horizontally based on scroll
             const maxMove = dealFlowTrack.scrollWidth - dealFlowTrack.parentElement.offsetWidth;
             const moveX = scrollProgress * maxMove * 0.8;
             
             dealFlowTrack.style.transform = `translateX(-${moveX}px)`;
             
-            // Update card opacity based on position
+            // Update card visuals (optimized - only update visible cards)
             const cards = dealFlowTrack.querySelectorAll('.startup-card');
             const containerCenter = dealFlowTrack.parentElement.offsetWidth / 2;
             
             cards.forEach(card => {
                 const cardRect = card.getBoundingClientRect();
-                const cardCenter = cardRect.left + cardRect.width / 2;
-                const distanceFromCenter = Math.abs(containerCenter - cardCenter);
-                const maxDistance = containerCenter;
-                const opacity = 1 - (distanceFromCenter / maxDistance) * 0.5;
-                const scale = 1 - (distanceFromCenter / maxDistance) * 0.15;
-                
-                card.style.opacity = Math.max(0.5, opacity);
-                card.style.transform = `scale(${Math.max(0.85, scale)})`;
+                // Only process cards that are potentially visible
+                if (cardRect.right > 0 && cardRect.left < windowHeight) {
+                    const cardCenter = cardRect.left + cardRect.width / 2;
+                    const distanceFromCenter = Math.abs(containerCenter - cardCenter);
+                    const maxDistance = containerCenter;
+                    const opacity = 1 - (distanceFromCenter / maxDistance) * 0.5;
+                    const scale = 1 - (distanceFromCenter / maxDistance) * 0.15;
+                    
+                    card.style.opacity = Math.max(0.5, opacity);
+                    card.style.transform = `scale(${Math.max(0.85, scale)})`;
+                }
             });
         }
-    });
-}
-
-// 15. Observe Testimonial Cards
+        parallaxTicking = false;
+    }
+    
+    window.addEventListener('scroll', () => {
+        if (!parallaxTicking) {
+            requestAnimationFrame(updateParallax);
+            parallaxTicking = true;
+        }
+    }, { passive: true });
+}// 15. Observe Testimonial Cards
 document.querySelectorAll('.testimonial-card').forEach(el => observer.observe(el));
