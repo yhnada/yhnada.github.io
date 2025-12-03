@@ -1,26 +1,73 @@
-// 1. Efficient Particle Generator (Reduced count for performance)
+// Motion helpers let us skip heavy effects when the user asks for reduced motion.
 const particlesContainer = document.getElementById('particles');
 const isMobile = window.innerWidth < 768;
-const particleCount = isMobile ? 10 : 20; // Reduced from 30
+const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+let reduceMotion = motionQuery.matches;
 
-if (particlesContainer) {
+const updateMotionPreferenceClass = () => {
+    if (document.body) {
+        document.body.classList.toggle('reduce-motion', reduceMotion);
+    }
+};
+
+updateMotionPreferenceClass();
+
+const runWhenIdle = (cb) => {
+    if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(cb);
+    } else {
+        setTimeout(cb, 0);
+    }
+};
+
+const initParticles = () => {
+    if (!particlesContainer) return;
+    particlesContainer.innerHTML = '';
+    const particleCount = isMobile ? 8 : 16;
+    const fragment = document.createDocumentFragment();
+
     for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
         particle.className = 'particle';
-        const size = Math.random() * 60 + 20; // Slightly smaller
+        const size = Math.random() * 50 + 15;
         particle.style.cssText = `
             width: ${size}px;
             height: ${size}px;
             left: ${Math.random() * 100}%;
             top: ${Math.random() * 100}%;
-            animation-delay: ${Math.random() * 20}s;
-            animation-duration: ${Math.random() * 10 + 15}s;
+            animation-delay: ${Math.random() * 15}s;
+            animation-duration: ${Math.random() * 8 + 12}s;
         `;
-        particlesContainer.appendChild(particle);
+        fragment.appendChild(particle);
     }
+
+    particlesContainer.appendChild(fragment);
+};
+
+const handleMotionPreferenceChange = (event) => {
+    reduceMotion = event.matches;
+    updateMotionPreferenceClass();
+
+    if (!particlesContainer) return;
+
+    if (reduceMotion) {
+        particlesContainer.innerHTML = '';
+    } else {
+        runWhenIdle(initParticles);
+    }
+};
+
+if (particlesContainer && !reduceMotion) {
+    runWhenIdle(initParticles);
 }
 
-// 2. Optimized Cursor Glow (Disabled on mobile/touch devices)
+if (typeof motionQuery.addEventListener === 'function') {
+    motionQuery.addEventListener('change', handleMotionPreferenceChange);
+} else if (typeof motionQuery.addListener === 'function') {
+    motionQuery.addListener(handleMotionPreferenceChange);
+}
+
+// 2. Optimized Cursor Glow (Disabled on mobile/touch/reduced motion)
 const glow = document.querySelector('.cursor-glow');
 let mouseX = 0, mouseY = 0;
 let glowX = 0, glowY = 0;
@@ -29,7 +76,7 @@ let glowAnimationId = null;
 // Only enable on non-touch devices
 const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-if (glow && !hasTouch && !isMobile) {
+if (glow && !hasTouch && !isMobile && !reduceMotion) {
     document.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
@@ -42,7 +89,7 @@ if (glow && !hasTouch && !isMobile) {
         glowAnimationId = requestAnimationFrame(animateGlow);
     }
     animateGlow();
-    
+
     // Pause animation when tab is not visible
     document.addEventListener('visibilitychange', () => {
         if (document.hidden && glowAnimationId) {
@@ -82,142 +129,180 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // 5. Intersection Observer for Animations
-const observer = new IntersectionObserver((entries) => {
+const supportsIntersectionObserver = 'IntersectionObserver' in window;
+const animateObserver = supportsIntersectionObserver ? new IntersectionObserver((entries, obs) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
             entry.target.classList.add('visible');
-            // Optional: Unobserve after triggering to prevent re-animating
-            // observer.unobserve(entry.target); 
+            obs.unobserve(entry.target);
         }
     });
-}, { threshold: 0.1 });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }) : null;
 
-document.querySelectorAll('.stats-grid, .section-header, .feature-card, .timeline-item, .comparison-container, .form-container, .faq-item').forEach(el => observer.observe(el));
-
-// 6. Number Counter
-const statsObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const counters = entry.target.querySelectorAll('.stat-number');
-            counters.forEach(counter => {
-                const target = parseFloat(counter.getAttribute('data-target'));
-                let current = 0;
-                const increment = target / 50;
-                const timer = setInterval(() => {
-                    current += increment;
-                    if (current >= target) {
-                        counter.textContent = target % 1 === 0 ? target : target.toFixed(1);
-                        clearInterval(timer);
-                    } else {
-                        counter.textContent = Math.ceil(current);
-                    }
-                }, 30);
-            });
-            statsObserver.unobserve(entry.target);
+const animatedElements = document.querySelectorAll('.stats-grid, .section-header, .feature-card, .timeline-item, .comparison-container, .form-container, .faq-item');
+if (animatedElements.length) {
+    const watchAnimatedElements = () => {
+        if (animateObserver) {
+            animatedElements.forEach(el => animateObserver.observe(el));
+        } else {
+            animatedElements.forEach(el => el.classList.add('visible'));
         }
+    };
+    runWhenIdle(watchAnimatedElements);
+}
+
+// 6. Number Counter (requestAnimationFrame for smoother updates)
+const animateCounters = (section) => {
+    const counters = section.querySelectorAll('.stat-number');
+    counters.forEach(counter => {
+        const target = parseFloat(counter.getAttribute('data-target'));
+        if (Number.isNaN(target)) return;
+
+        const duration = 1200;
+        let startTime = null;
+
+        const step = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            const value = target * progress;
+            counter.textContent = Number.isInteger(target) ? Math.round(value) : value.toFixed(1);
+
+            if (progress < 1) {
+                requestAnimationFrame(step);
+            }
+        };
+
+        requestAnimationFrame(step);
     });
-}, { threshold: 0.5 });
+};
 
 const statsSection = document.getElementById('stats');
-if (statsSection) statsObserver.observe(statsSection);
+if (statsSection) {
+    if (supportsIntersectionObserver) {
+        const statsObserver = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateCounters(entry.target);
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        statsObserver.observe(statsSection);
+    } else {
+        animateCounters(statsSection);
+    }
+}
 
-// 7. Ripple Effect
-document.querySelectorAll('button').forEach(button => {
-    button.addEventListener('click', function (e) {
-        const ripple = document.createElement('span');
-        const rect = this.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        const x = e.clientX - rect.left - size / 2;
-        const y = e.clientY - rect.top - size / 2;
+// 7. Ripple Effect (delegated to avoid many listeners)
+document.addEventListener('click', (event) => {
+    const button = event.target.closest('button');
+    if (!button || button.disabled || button.classList.contains('no-ripple')) return;
 
-        ripple.style.width = ripple.style.height = size + 'px';
-        ripple.style.left = x + 'px';
-        ripple.style.top = y + 'px';
-        ripple.style.position = 'absolute';
-        ripple.style.borderRadius = '50%';
-        ripple.style.background = 'rgba(255, 255, 255, 0.3)';
-        ripple.style.transform = 'scale(0)';
-        ripple.style.animation = 'ripple 0.6s ease-out';
-        ripple.style.pointerEvents = 'none';
+    const ripple = document.createElement('span');
+    const rect = button.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = event.clientX - rect.left - size / 2;
+    const y = event.clientY - rect.top - size / 2;
 
-        this.appendChild(ripple);
-        setTimeout(() => ripple.remove(), 600);
-    });
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    ripple.style.position = 'absolute';
+    ripple.style.borderRadius = '50%';
+    ripple.style.background = 'rgba(255, 255, 255, 0.3)';
+    ripple.style.transform = 'scale(0)';
+    ripple.style.animation = 'ripple 0.6s ease-out';
+    ripple.style.pointerEvents = 'none';
+
+    if (getComputedStyle(button).position === 'static') {
+        button.style.position = 'relative';
+    }
+    button.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 600);
 });
 // 8. Form Wizard Logic
 const form = document.getElementById('startupForm');
 if (form) {
     let currentStep = 1;
-    const totalSteps = 4;
+    const formSteps = form.querySelectorAll('.form-step');
+    const totalSteps = formSteps.length;
+    const formWrapper = form.closest('.form-container') || document;
+    const progressFill = formWrapper.querySelector('#progressFill');
+    const stepsIndicator = formWrapper.querySelectorAll('.step');
+    const formProgress = formWrapper.querySelector('.form-progress');
+    const successMessage = formWrapper.querySelector('#formSuccess');
 
-    // Next Button
-    document.querySelectorAll('.btn-next').forEach(btn => {
+    const updateFormStep = () => {
+        formSteps.forEach(step => {
+            const stepNum = parseInt(step.dataset.step, 10);
+            step.classList.toggle('active', stepNum === currentStep);
+        });
+
+        const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+        if (progressFill) {
+            progressFill.style.width = `${progress}%`;
+        }
+
+        stepsIndicator.forEach(step => {
+            const stepNum = parseInt(step.dataset.step, 10);
+            step.classList.remove('active', 'completed');
+            if (stepNum === currentStep) step.classList.add('active');
+            if (stepNum < currentStep) step.classList.add('completed');
+        });
+    };
+
+    const validateCurrentStep = () => {
+        const currentStepEl = form.querySelector(`.form-step[data-step="${currentStep}"]`);
+        if (!currentStepEl) return true;
+        const inputs = currentStepEl.querySelectorAll('input[required], select[required], textarea[required]');
+        let isValid = true;
+
+        inputs.forEach(input => {
+            if (!input.value) {
+                isValid = false;
+                input.style.borderColor = 'var(--primary-pink)';
+            } else {
+                input.style.borderColor = 'rgba(255,255,255,0.1)';
+            }
+        });
+
+        return isValid;
+    };
+
+    form.querySelectorAll('.btn-next').forEach(btn => {
         btn.addEventListener('click', () => {
-            // Simple validation
-            const currentStepEl = document.querySelector(`.form-step[data-step="${currentStep}"]`);
-            const inputs = currentStepEl.querySelectorAll('input[required], select[required], textarea[required]');
-            let isValid = true;
-
-            inputs.forEach(input => {
-                if (!input.value) {
-                    isValid = false;
-                    input.style.borderColor = 'var(--primary-pink)';
-                } else {
-                    input.style.borderColor = 'rgba(255,255,255,0.1)';
-                }
-            });
-
-            if (isValid) {
+            if (currentStep >= totalSteps) return;
+            if (validateCurrentStep()) {
                 currentStep++;
                 updateFormStep();
             }
         });
     });
 
-    // Prev Button
-    document.querySelectorAll('.btn-prev').forEach(btn => {
+    form.querySelectorAll('.btn-prev').forEach(btn => {
         btn.addEventListener('click', () => {
+            if (currentStep <= 1) return;
             currentStep--;
             updateFormStep();
         });
     });
 
-    function updateFormStep() {
-        // Update Steps UI
-        document.querySelectorAll('.form-step').forEach(step => {
-            step.classList.remove('active');
-            if (parseInt(step.dataset.step) === currentStep) {
-                step.classList.add('active');
-            }
-        });
-
-        // Update Progress Bar
-        const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
-        document.getElementById('progressFill').style.width = `${progress}%`;
-
-        // Update Indicators
-        document.querySelectorAll('.step').forEach(step => {
-            const stepNum = parseInt(step.dataset.step);
-            step.classList.remove('active', 'completed');
-            if (stepNum === currentStep) step.classList.add('active');
-            if (stepNum < currentStep) step.classList.add('completed');
-        });
-    }
-
-    // Form Submit
     form.addEventListener('submit', (e) => {
         e.preventDefault();
-        document.getElementById('startupForm').style.display = 'none';
-        document.querySelector('.form-progress').style.display = 'none';
-        document.getElementById('formSuccess').style.display = 'block';
+        form.style.display = 'none';
+        if (formProgress) formProgress.style.display = 'none';
+        if (successMessage) successMessage.style.display = 'block';
 
-        // Set success date
-        const date = document.getElementById('selectedDate').value || 'Next Monday';
-        document.getElementById('successDate').textContent = date;
+        const selectedDateInput = document.getElementById('selectedDate');
+        const successDate = document.getElementById('successDate');
+        if (successDate) {
+            successDate.textContent = (selectedDateInput && selectedDateInput.value) ? selectedDateInput.value : 'Next Monday';
+        }
 
-        // Confetti
         createConfetti();
     });
+
+    updateFormStep();
 }
 
 // 9. File Upload Visuals
@@ -262,18 +347,49 @@ const calendar = document.getElementById('calendar');
 if (calendar) {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const today = new Date();
+    const selectedDateInput = document.getElementById('selectedDate');
+    const selectedTimeInput = document.getElementById('selectedTime');
+    const timeSlots = document.getElementById('timeSlots');
+    const slotTimes = ['09:00', '11:00', '14:00', '16:00'];
+    let activeCalendarDay = null;
+    let activeTimeSlot = null;
 
-    // Generate Header
+    const headerFragment = document.createDocumentFragment();
     days.forEach(day => {
         const el = document.createElement('div');
         el.style.textAlign = 'center';
         el.style.fontSize = '12px';
         el.style.color = 'var(--text-secondary)';
         el.textContent = day;
-        calendar.appendChild(el);
+        headerFragment.appendChild(el);
     });
+    calendar.appendChild(headerFragment);
 
-    // Generate Days (Simple 30 days from today)
+    const renderTimeSlots = () => {
+        if (!timeSlots) return;
+        timeSlots.style.display = 'grid';
+        timeSlots.innerHTML = '';
+        const fragment = document.createDocumentFragment();
+
+        slotTimes.forEach(time => {
+            const slot = document.createElement('div');
+            slot.className = 'time-slot';
+            slot.textContent = time;
+            slot.addEventListener('click', () => {
+                if (activeTimeSlot) activeTimeSlot.classList.remove('selected');
+                activeTimeSlot = slot;
+                slot.classList.add('selected');
+                if (selectedTimeInput) {
+                    selectedTimeInput.value = time;
+                }
+            });
+            fragment.appendChild(slot);
+        });
+
+        timeSlots.appendChild(fragment);
+    };
+
+    const calendarFragment = document.createDocumentFragment();
     for (let i = 0; i < 28; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
@@ -281,31 +397,29 @@ if (calendar) {
         const el = document.createElement('div');
         el.className = 'calendar-day';
         el.textContent = date.getDate();
+        el.dataset.fullDate = date.toDateString();
 
         el.addEventListener('click', () => {
-            document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
+            if (activeCalendarDay) activeCalendarDay.classList.remove('selected');
+            activeCalendarDay = el;
             el.classList.add('selected');
-            document.getElementById('selectedDate').value = date.toDateString();
 
-            // Show Time Slots
-            const timeSlots = document.getElementById('timeSlots');
-            timeSlots.style.display = 'grid';
-            timeSlots.innerHTML = '';
-            ['09:00', '11:00', '14:00', '16:00'].forEach(time => {
-                const slot = document.createElement('div');
-                slot.className = 'time-slot';
-                slot.textContent = time;
-                slot.addEventListener('click', () => {
-                    document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('selected'));
-                    slot.classList.add('selected');
-                    document.getElementById('selectedTime').value = time;
-                });
-                timeSlots.appendChild(slot);
-            });
+            if (selectedDateInput) {
+                selectedDateInput.value = el.dataset.fullDate;
+            }
+
+            if (selectedTimeInput) {
+                selectedTimeInput.value = '';
+            }
+
+            activeTimeSlot = null;
+            renderTimeSlots();
         });
 
-        calendar.appendChild(el);
+        calendarFragment.appendChild(el);
     }
+
+    calendar.appendChild(calendarFragment);
 }
 
 // 11. FAQ Accordion
@@ -317,149 +431,193 @@ document.querySelectorAll('.faq-item').forEach(item => {
 
 // 12. Confetti
 function createConfetti() {
-    for (let i = 0; i < 50; i++) {
+    if (reduceMotion || !document.body) return;
+    const fragment = document.createDocumentFragment();
+    const colors = ['#E11D48', '#07196E', '#ffffff'];
+
+    for (let i = 0; i < 35; i++) {
         const confetti = document.createElement('div');
         confetti.style.position = 'fixed';
         confetti.style.left = Math.random() * 100 + '%';
         confetti.style.top = '-10px';
         confetti.style.width = '10px';
         confetti.style.height = '10px';
-        confetti.style.backgroundColor = ['#E11D48', '#07196E', '#ffffff'][Math.floor(Math.random() * 3)];
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
         confetti.style.animation = `float ${Math.random() * 3 + 2}s linear`;
-        document.body.appendChild(confetti);
+        fragment.appendChild(confetti);
 
-        setTimeout(() => confetti.remove(), 5000);
+        setTimeout(() => confetti.remove(), 4500);
     }
+
+    document.body.appendChild(fragment);
 }
 
 // 13. Investor Form Wizard Logic
 const investorForm = document.getElementById('investorForm');
 if (investorForm) {
     let currentStep = 1;
-    const totalSteps = 4;
+    const formSteps = investorForm.querySelectorAll('.form-step');
+    const totalSteps = formSteps.length;
+    const formWrapper = investorForm.closest('.form-container') || document;
+    const progressFill = formWrapper.querySelector('#progressFill');
+    const stepsIndicator = formWrapper.querySelectorAll('.step');
+    const formProgress = formWrapper.querySelector('.form-progress');
+    const successMessage = formWrapper.querySelector('#formSuccess');
 
-    // Next Button
-    document.querySelectorAll('.btn-next').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const currentStepEl = document.querySelector(`.form-step[data-step="${currentStep}"]`);
-            const inputs = currentStepEl.querySelectorAll('input[required], select[required]');
-            let isValid = true;
+    const updateInvestorFormStep = () => {
+        formSteps.forEach(step => {
+            const stepNum = parseInt(step.dataset.step, 10);
+            step.classList.toggle('active', stepNum === currentStep);
+        });
 
-            inputs.forEach(input => {
-                if (!input.value && input.type !== 'radio') {
+        const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+        if (progressFill) {
+            progressFill.style.width = `${progress}%`;
+        }
+
+        stepsIndicator.forEach(step => {
+            const stepNum = parseInt(step.dataset.step, 10);
+            step.classList.remove('active', 'completed');
+            if (stepNum === currentStep) step.classList.add('active');
+            if (stepNum < currentStep) step.classList.add('completed');
+        });
+    };
+
+    const validateInvestorStep = () => {
+        const currentStepEl = investorForm.querySelector(`.form-step[data-step="${currentStep}"]`);
+        if (!currentStepEl) return true;
+
+        let isValid = true;
+        const inputs = currentStepEl.querySelectorAll('input[required]:not([type="radio"]), select[required], textarea[required]');
+        inputs.forEach(input => {
+            if (!input.value) {
+                isValid = false;
+                input.style.borderColor = 'var(--primary-pink)';
+            } else {
+                input.style.borderColor = 'rgba(255,255,255,0.1)';
+            }
+        });
+
+        const radioGroups = currentStepEl.querySelectorAll('input[type="radio"][required]');
+        if (radioGroups.length) {
+            const names = [...new Set(Array.from(radioGroups).map(radio => radio.name))];
+            names.forEach(name => {
+                if (!currentStepEl.querySelector(`input[name="${name}"]:checked`)) {
                     isValid = false;
-                    input.style.borderColor = 'var(--primary-pink)';
-                } else {
-                    input.style.borderColor = 'rgba(255,255,255,0.1)';
                 }
             });
+        }
 
-            // Check radio buttons separately
-            const radioGroups = currentStepEl.querySelectorAll('input[type="radio"][required]');
-            if (radioGroups.length > 0) {
-                const radioName = radioGroups[0].name;
-                const checked = currentStepEl.querySelector(`input[name="${radioName}"]:checked`);
-                if (!checked) {
-                    isValid = false;
-                }
-            }
+        return isValid;
+    };
 
-            if (isValid) {
+    investorForm.querySelectorAll('.btn-next').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (currentStep >= totalSteps) return;
+            if (validateInvestorStep()) {
                 currentStep++;
                 updateInvestorFormStep();
             }
         });
     });
 
-    // Prev Button
-    document.querySelectorAll('.btn-prev').forEach(btn => {
+    investorForm.querySelectorAll('.btn-prev').forEach(btn => {
         btn.addEventListener('click', () => {
+            if (currentStep <= 1) return;
             currentStep--;
             updateInvestorFormStep();
         });
     });
 
-    function updateInvestorFormStep() {
-        document.querySelectorAll('.form-step').forEach(step => {
-            step.classList.remove('active');
-            if (parseInt(step.dataset.step) === currentStep) {
-                step.classList.add('active');
-            }
-        });
-
-        const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
-        document.getElementById('progressFill').style.width = `${progress}%`;
-
-        document.querySelectorAll('.step').forEach(step => {
-            const stepNum = parseInt(step.dataset.step);
-            step.classList.remove('active', 'completed');
-            if (stepNum === currentStep) step.classList.add('active');
-            if (stepNum < currentStep) step.classList.add('completed');
-        });
-    }
-
-    // Form Submit
     investorForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        document.getElementById('investorForm').style.display = 'none';
-        document.querySelector('.form-progress').style.display = 'none';
-        document.getElementById('formSuccess').style.display = 'block';
+        investorForm.style.display = 'none';
+        if (formProgress) formProgress.style.display = 'none';
+        if (successMessage) successMessage.style.display = 'block';
 
-        const date = document.getElementById('selectedDate').value || 'within 24 hours';
-        document.getElementById('successDate').textContent = date;
+        const dateInput = document.getElementById('selectedDate');
+        const successDate = document.getElementById('successDate');
+        if (successDate) {
+            successDate.textContent = (dateInput && dateInput.value) ? dateInput.value : 'within 24 hours';
+        }
 
         createConfetti();
     });
+
+    updateInvestorFormStep();
 }
 
 // 14. Parallax Deal Flow Effect (Throttled)
 const dealFlowTrack = document.getElementById('dealFlowTrack');
 if (dealFlowTrack) {
     const dealFlowSection = document.querySelector('.deal-flow-section');
-    let parallaxTicking = false;
-    
-    function updateParallax() {
-        const rect = dealFlowSection.getBoundingClientRect();
-        const windowHeight = window.innerHeight;
-        
-        // Check if section is in view
-        if (rect.top < windowHeight && rect.bottom > 0) {
-            const sectionStart = rect.top - windowHeight;
-            const sectionEnd = rect.bottom;
-            const scrollProgress = Math.abs(sectionStart) / (Math.abs(sectionStart) + sectionEnd);
-            
-            const maxMove = dealFlowTrack.scrollWidth - dealFlowTrack.parentElement.offsetWidth;
-            const moveX = scrollProgress * maxMove * 0.8;
-            
-            dealFlowTrack.style.transform = `translateX(-${moveX}px)`;
-            
-            // Update card visuals (optimized - only update visible cards)
-            const cards = dealFlowTrack.querySelectorAll('.startup-card');
-            const containerCenter = dealFlowTrack.parentElement.offsetWidth / 2;
-            
-            cards.forEach(card => {
-                const cardRect = card.getBoundingClientRect();
-                // Only process cards that are potentially visible
-                if (cardRect.right > 0 && cardRect.left < windowHeight) {
-                    const cardCenter = cardRect.left + cardRect.width / 2;
-                    const distanceFromCenter = Math.abs(containerCenter - cardCenter);
-                    const maxDistance = containerCenter;
-                    const opacity = 1 - (distanceFromCenter / maxDistance) * 0.5;
-                    const scale = 1 - (distanceFromCenter / maxDistance) * 0.15;
-                    
-                    card.style.opacity = Math.max(0.5, opacity);
-                    card.style.transform = `scale(${Math.max(0.85, scale)})`;
-                }
-            });
+    const dealFlowWrapper = dealFlowTrack.parentElement;
+
+    if (dealFlowSection && dealFlowWrapper) {
+        const dealFlowCards = Array.from(dealFlowTrack.querySelectorAll('.startup-card'));
+        let parallaxTicking = false;
+        let maxMove = 0;
+
+        const recalcParallaxMetrics = () => {
+            const wrapperWidth = dealFlowWrapper.offsetWidth;
+            maxMove = Math.max(0, dealFlowTrack.scrollWidth - wrapperWidth);
+        };
+
+        recalcParallaxMetrics();
+        window.addEventListener('resize', recalcParallaxMetrics);
+
+        function updateParallax() {
+            const rect = dealFlowSection.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+
+            // Check if section is in view
+            if (rect.top < windowHeight && rect.bottom > 0) {
+                const sectionStart = rect.top - windowHeight;
+                const sectionEnd = rect.bottom;
+                const scrollProgress = Math.abs(sectionStart) / (Math.abs(sectionStart) + sectionEnd);
+
+                const moveX = scrollProgress * maxMove * 0.8;
+                dealFlowTrack.style.transform = `translate3d(-${moveX}px, 0, 0)`;
+
+                const wrapperRect = dealFlowWrapper.getBoundingClientRect();
+                const wrapperCenter = wrapperRect.left + wrapperRect.width / 2;
+                const maxDistance = wrapperRect.width / 2 || 1;
+                const viewportWidth = window.innerWidth;
+
+                dealFlowCards.forEach(card => {
+                    const cardRect = card.getBoundingClientRect();
+                    // Only process cards that are potentially visible horizontally
+                    if (cardRect.right > 0 && cardRect.left < viewportWidth) {
+                        const cardCenter = cardRect.left + cardRect.width / 2;
+                        const distanceFromCenter = Math.abs(wrapperCenter - cardCenter);
+                        const opacity = 1 - (distanceFromCenter / maxDistance) * 0.5;
+                        const scale = 1 - (distanceFromCenter / maxDistance) * 0.15;
+
+                        card.style.opacity = Math.max(0.5, opacity);
+                        card.style.transform = `scale(${Math.max(0.85, scale)})`;
+                    }
+                });
+            }
+            parallaxTicking = false;
         }
-        parallaxTicking = false;
+
+        window.addEventListener('scroll', () => {
+            if (!parallaxTicking) {
+                requestAnimationFrame(updateParallax);
+                parallaxTicking = true;
+            }
+        }, { passive: true });
+
+        updateParallax();
     }
-    
-    window.addEventListener('scroll', () => {
-        if (!parallaxTicking) {
-            requestAnimationFrame(updateParallax);
-            parallaxTicking = true;
-        }
-    }, { passive: true });
-}// 15. Observe Testimonial Cards
-document.querySelectorAll('.testimonial-card').forEach(el => observer.observe(el));
+}
+
+// 15. Observe Testimonial Cards
+const testimonialCards = document.querySelectorAll('.testimonial-card');
+if (testimonialCards.length) {
+    if (animateObserver) {
+        testimonialCards.forEach(el => animateObserver.observe(el));
+    } else {
+        testimonialCards.forEach(el => el.classList.add('visible'));
+    }
+}
