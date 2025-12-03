@@ -773,13 +773,14 @@
                         const target = parseFloat(counter.getAttribute('data-target'));
                         let current = 0;
                         const increment = target / 50; 
+                        const hasDecimal = target % 1 !== 0;
                         const timer = setInterval(() => {
                             current += increment;
                             if (current >= target) {
-                                counter.textContent = target % 1 === 0 ? target : target.toFixed(1);
+                                counter.textContent = hasDecimal ? target.toFixed(1) : target;
                                 clearInterval(timer);
                             } else {
-                                counter.textContent = Math.ceil(current);
+                                counter.textContent = hasDecimal ? current.toFixed(1) : Math.ceil(current);
                             }
                         }, 30);
                     });
