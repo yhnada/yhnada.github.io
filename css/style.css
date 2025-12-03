@@ -954,3 +954,203 @@ body {
 .faq-item:nth-child(3) {
     transition-delay: 0.3s;
 }
+/* --- INVESTOR PAGE SPECIFIC --- */
+
+/* Investor Badge (Gold Accent) */
+.investor-badge {
+    background: rgba(212, 175, 55, 0.1);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    color: #D4AF37;
+}
+
+/* Investor Pain Points 2x2 Grid */
+#investor-pain-points {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 768px) {
+    #investor-pain-points {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- PARALLAX DEAL FLOW SECTION --- */
+.deal-flow-section {
+    padding: 100px 20px;
+    overflow: hidden;
+    position: relative;
+}
+
+.parallax-container {
+    width: 100%;
+    overflow: hidden;
+    padding: 40px 0;
+}
+
+.deal-flow-track {
+    display: flex;
+    gap: 24px;
+    padding: 20px 40px;
+    transition: transform 0.1s ease-out;
+    will-change: transform;
+}
+
+.startup-card {
+    flex: 0 0 280px;
+    padding: 32px;
+    border-radius: 20px;
+    text-align: center;
+    transition: all 0.4s ease;
+    transform: perspective(1000px) rotateY(0deg);
+    opacity: 0.7;
+}
+
+.startup-card:hover {
+    transform: perspective(1000px) rotateY(0deg) scale(1.05);
+    opacity: 1;
+}
+
+.startup-card.active {
+    opacity: 1;
+    transform: scale(1.08);
+}
+
+.startup-logo {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.startup-card h4 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.industry-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    background: rgba(225, 29, 72, 0.1);
+    border: 1px solid rgba(225, 29, 72, 0.3);
+    border-radius: 50px;
+    font-size: 12px;
+    color: var(--primary-pink);
+    margin-bottom: 12px;
+}
+
+.hit-count {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.funding-stage {
+    display: inline-block;
+    padding: 6px 16px;
+    background: var(--accent-gradient);
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+}
+
+/* --- TESTIMONIALS GRID --- */
+.testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    margin-top: 40px;
+}
+
+.testimonial-card {
+    padding: 32px;
+    border-radius: 20px;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+}
+
+.testimonial-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.testimonial-quote {
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.7;
+    margin-bottom: 24px;
+    color: var(--text-secondary);
+}
+
+.testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.author-avatar {
+    width: 48px;
+    height: 48px;
+    background: var(--accent-gradient);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+}
+
+.testimonial-author span {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* --- CHECKBOX & RADIO STYLES --- */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.checkbox-item,
+.radio-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.checkbox-item:hover,
+.radio-item:hover {
+    border-color: var(--primary-pink);
+}
+
+.checkbox-item input,
+.radio-item input {
+    accent-color: var(--primary-pink);
+    width: 18px;
+    height: 18px;
+}
+
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+@media (max-width: 768px) {
+    .checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .deal-flow-track {
+        padding: 20px;
+    }
+    
+    .startup-card {
+        flex: 0 0 240px;
+    }
+}

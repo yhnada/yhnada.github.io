@@ -296,3 +296,127 @@ function createConfetti() {
         setTimeout(() => confetti.remove(), 5000);
     }
 }
+
+// 13. Investor Form Wizard Logic
+const investorForm = document.getElementById('investorForm');
+if (investorForm) {
+    let currentStep = 1;
+    const totalSteps = 4;
+
+    // Next Button
+    document.querySelectorAll('.btn-next').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const currentStepEl = document.querySelector(`.form-step[data-step="${currentStep}"]`);
+            const inputs = currentStepEl.querySelectorAll('input[required], select[required]');
+            let isValid = true;
+
+            inputs.forEach(input => {
+                if (!input.value && input.type !== 'radio') {
+                    isValid = false;
+                    input.style.borderColor = 'var(--primary-pink)';
+                } else {
+                    input.style.borderColor = 'rgba(255,255,255,0.1)';
+                }
+            });
+
+            // Check radio buttons separately
+            const radioGroups = currentStepEl.querySelectorAll('input[type="radio"][required]');
+            if (radioGroups.length > 0) {
+                const radioName = radioGroups[0].name;
+                const checked = currentStepEl.querySelector(`input[name="${radioName}"]:checked`);
+                if (!checked) {
+                    isValid = false;
+                }
+            }
+
+            if (isValid) {
+                currentStep++;
+                updateInvestorFormStep();
+            }
+        });
+    });
+
+    // Prev Button
+    document.querySelectorAll('.btn-prev').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentStep--;
+            updateInvestorFormStep();
+        });
+    });
+
+    function updateInvestorFormStep() {
+        document.querySelectorAll('.form-step').forEach(step => {
+            step.classList.remove('active');
+            if (parseInt(step.dataset.step) === currentStep) {
+                step.classList.add('active');
+            }
+        });
+
+        const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+        document.getElementById('progressFill').style.width = `${progress}%`;
+
+        document.querySelectorAll('.step').forEach(step => {
+            const stepNum = parseInt(step.dataset.step);
+            step.classList.remove('active', 'completed');
+            if (stepNum === currentStep) step.classList.add('active');
+            if (stepNum < currentStep) step.classList.add('completed');
+        });
+    }
+
+    // Form Submit
+    investorForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        document.getElementById('investorForm').style.display = 'none';
+        document.querySelector('.form-progress').style.display = 'none';
+        document.getElementById('formSuccess').style.display = 'block';
+
+        const date = document.getElementById('selectedDate').value || 'within 24 hours';
+        document.getElementById('successDate').textContent = date;
+
+        createConfetti();
+    });
+}
+
+// 14. Parallax Deal Flow Effect
+const dealFlowTrack = document.getElementById('dealFlowTrack');
+if (dealFlowTrack) {
+    const dealFlowSection = document.querySelector('.deal-flow-section');
+    
+    window.addEventListener('scroll', () => {
+        const rect = dealFlowSection.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        
+        // Check if section is in view
+        if (rect.top < windowHeight && rect.bottom > 0) {
+            // Calculate scroll progress through the section
+            const sectionStart = rect.top - windowHeight;
+            const sectionEnd = rect.bottom;
+            const scrollProgress = Math.abs(sectionStart) / (Math.abs(sectionStart) + sectionEnd);
+            
+            // Move the track horizontally based on scroll
+            const maxMove = dealFlowTrack.scrollWidth - dealFlowTrack.parentElement.offsetWidth;
+            const moveX = scrollProgress * maxMove * 0.8;
+            
+            dealFlowTrack.style.transform = `translateX(-${moveX}px)`;
+            
+            // Update card opacity based on position
+            const cards = dealFlowTrack.querySelectorAll('.startup-card');
+            const containerCenter = dealFlowTrack.parentElement.offsetWidth / 2;
+            
+            cards.forEach(card => {
+                const cardRect = card.getBoundingClientRect();
+                const cardCenter = cardRect.left + cardRect.width / 2;
+                const distanceFromCenter = Math.abs(containerCenter - cardCenter);
+                const maxDistance = containerCenter;
+                const opacity = 1 - (distanceFromCenter / maxDistance) * 0.5;
+                const scale = 1 - (distanceFromCenter / maxDistance) * 0.15;
+                
+                card.style.opacity = Math.max(0.5, opacity);
+                card.style.transform = `scale(${Math.max(0.85, scale)})`;
+            });
+        }
+    });
+}
+
+// 15. Observe Testimonial Cards
+document.querySelectorAll('.testimonial-card').forEach(el => observer.observe(el));
