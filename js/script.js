@@ -57,7 +57,7 @@ const observer = new IntersectionObserver((entries) => {
     });
 }, { threshold: 0.1 });
 
-document.querySelectorAll('.stats-grid, .section-header, .feature-card, .timeline-item').forEach(el => observer.observe(el));
+document.querySelectorAll('.stats-grid, .section-header, .feature-card, .timeline-item, .comparison-container, .form-container, .faq-item').forEach(el => observer.observe(el));
 
 // 6. Number Counter
 const statsObserver = new IntersectionObserver((entries) => {
@@ -109,3 +109,190 @@ document.querySelectorAll('button').forEach(button => {
         setTimeout(() => ripple.remove(), 600);
     });
 });
+// 8. Form Wizard Logic
+const form = document.getElementById('startupForm');
+if (form) {
+    let currentStep = 1;
+    const totalSteps = 4;
+
+    // Next Button
+    document.querySelectorAll('.btn-next').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Simple validation
+            const currentStepEl = document.querySelector(`.form-step[data-step="${currentStep}"]`);
+            const inputs = currentStepEl.querySelectorAll('input[required], select[required], textarea[required]');
+            let isValid = true;
+
+            inputs.forEach(input => {
+                if (!input.value) {
+                    isValid = false;
+                    input.style.borderColor = 'var(--primary-pink)';
+                } else {
+                    input.style.borderColor = 'rgba(255,255,255,0.1)';
+                }
+            });
+
+            if (isValid) {
+                currentStep++;
+                updateFormStep();
+            }
+        });
+    });
+
+    // Prev Button
+    document.querySelectorAll('.btn-prev').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentStep--;
+            updateFormStep();
+        });
+    });
+
+    function updateFormStep() {
+        // Update Steps UI
+        document.querySelectorAll('.form-step').forEach(step => {
+            step.classList.remove('active');
+            if (parseInt(step.dataset.step) === currentStep) {
+                step.classList.add('active');
+            }
+        });
+
+        // Update Progress Bar
+        const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+        document.getElementById('progressFill').style.width = `${progress}%`;
+
+        // Update Indicators
+        document.querySelectorAll('.step').forEach(step => {
+            const stepNum = parseInt(step.dataset.step);
+            step.classList.remove('active', 'completed');
+            if (stepNum === currentStep) step.classList.add('active');
+            if (stepNum < currentStep) step.classList.add('completed');
+        });
+    }
+
+    // Form Submit
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        document.getElementById('startupForm').style.display = 'none';
+        document.querySelector('.form-progress').style.display = 'none';
+        document.getElementById('formSuccess').style.display = 'block';
+
+        // Set success date
+        const date = document.getElementById('selectedDate').value || 'Next Monday';
+        document.getElementById('successDate').textContent = date;
+
+        // Confetti
+        createConfetti();
+    });
+}
+
+// 9. File Upload Visuals
+const fileUpload = document.getElementById('fileUpload');
+if (fileUpload) {
+    const input = document.getElementById('pitchDeck');
+    const fileName = document.getElementById('fileName');
+
+    fileUpload.addEventListener('click', () => input.click());
+
+    input.addEventListener('change', () => {
+        if (input.files.length > 0) {
+            fileName.textContent = '✓ ' + input.files[0].name;
+            fileUpload.style.borderColor = 'var(--primary-pink)';
+        }
+    });
+
+    // Drag & Drop
+    fileUpload.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileUpload.style.background = 'rgba(255,255,255,0.1)';
+    });
+
+    fileUpload.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        fileUpload.style.background = 'rgba(255,255,255,0.05)';
+    });
+
+    fileUpload.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileUpload.style.background = 'rgba(255,255,255,0.05)';
+        if (e.dataTransfer.files.length > 0) {
+            input.files = e.dataTransfer.files;
+            fileName.textContent = '✓ ' + input.files[0].name;
+            fileUpload.style.borderColor = 'var(--primary-pink)';
+        }
+    });
+}
+
+// 10. Calendar Logic
+const calendar = document.getElementById('calendar');
+if (calendar) {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const today = new Date();
+
+    // Generate Header
+    days.forEach(day => {
+        const el = document.createElement('div');
+        el.style.textAlign = 'center';
+        el.style.fontSize = '12px';
+        el.style.color = 'var(--text-secondary)';
+        el.textContent = day;
+        calendar.appendChild(el);
+    });
+
+    // Generate Days (Simple 30 days from today)
+    for (let i = 0; i < 28; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+
+        const el = document.createElement('div');
+        el.className = 'calendar-day';
+        el.textContent = date.getDate();
+
+        el.addEventListener('click', () => {
+            document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById('selectedDate').value = date.toDateString();
+
+            // Show Time Slots
+            const timeSlots = document.getElementById('timeSlots');
+            timeSlots.style.display = 'grid';
+            timeSlots.innerHTML = '';
+            ['09:00', '11:00', '14:00', '16:00'].forEach(time => {
+                const slot = document.createElement('div');
+                slot.className = 'time-slot';
+                slot.textContent = time;
+                slot.addEventListener('click', () => {
+                    document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('selected'));
+                    slot.classList.add('selected');
+                    document.getElementById('selectedTime').value = time;
+                });
+                timeSlots.appendChild(slot);
+            });
+        });
+
+        calendar.appendChild(el);
+    }
+}
+
+// 11. FAQ Accordion
+document.querySelectorAll('.faq-item').forEach(item => {
+    item.addEventListener('click', () => {
+        item.classList.toggle('active');
+    });
+});
+
+// 12. Confetti
+function createConfetti() {
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.style.position = 'fixed';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.top = '-10px';
+        confetti.style.width = '10px';
+        confetti.style.height = '10px';
+        confetti.style.backgroundColor = ['#E11D48', '#07196E', '#ffffff'][Math.floor(Math.random() * 3)];
+        confetti.style.animation = `float ${Math.random() * 3 + 2}s linear`;
+        document.body.appendChild(confetti);
+
+        setTimeout(() => confetti.remove(), 5000);
+    }
+}

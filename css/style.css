@@ -632,3 +632,325 @@ footer {
         font-size: 42px;
     }
 }
+
+/* --- COMPARISON TABLE --- */
+.comparison-container {
+    padding: 40px;
+    border-radius: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.comparison-header,
+.comparison-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.comparison-header {
+    font-weight: 800;
+    font-size: 18px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.comparison-row:last-child {
+    border-bottom: none;
+}
+
+.strikethrough {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.highlight {
+    color: var(--primary-pink);
+    font-weight: 600;
+}
+
+/* --- FORM WIZARD --- */
+.form-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px;
+    border-radius: 24px;
+}
+
+.form-progress {
+    margin-bottom: 40px;
+    position: relative;
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 0;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--accent-gradient);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.steps-indicator {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+}
+
+.step {
+    width: 32px;
+    height: 32px;
+    background: var(--dark-bg);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+}
+
+.step.active {
+    border-color: var(--primary-pink);
+    color: var(--primary-pink);
+    box-shadow: 0 0 10px rgba(225, 29, 72, 0.3);
+}
+
+.step.completed {
+    background: var(--primary-pink);
+    border-color: var(--primary-pink);
+    color: white;
+}
+
+.form-step {
+    display: none;
+    animation: fadeInUp 0.5s ease;
+}
+
+.form-step.active {
+    display: block;
+}
+
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.glass-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-family: inherit;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+    outline: none;
+    border-color: var(--primary-pink);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 32px;
+}
+
+/* --- FILE UPLOAD --- */
+.file-upload {
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    text-align: center;
+    padding: 40px;
+    cursor: pointer;
+}
+
+.file-upload:hover {
+    border-color: var(--primary-pink);
+    background: rgba(225, 29, 72, 0.05);
+}
+
+/* --- CALENDAR --- */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.calendar-day {
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.calendar-day:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.calendar-day.selected {
+    background: var(--primary-pink);
+    color: white;
+}
+
+.time-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 12px;
+}
+
+.time-slot {
+    padding: 10px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.time-slot:hover {
+    border-color: var(--primary-pink);
+}
+
+.time-slot.selected {
+    background: var(--primary-pink);
+    border-color: var(--primary-pink);
+}
+
+/* --- FAQ --- */
+.faq-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.faq-item {
+    padding: 20px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.faq-question {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 18px;
+}
+
+.faq-answer {
+    margin-top: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.faq-item.active .faq-answer {
+    margin-top: 16px;
+    max-height: 200px;
+}
+
+.faq-item.active .toggle {
+    transform: rotate(45deg);
+}
+
+@media (max-width: 768px) {
+
+    .comparison-header,
+    .comparison-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .col.strikethrough {
+        font-size: 14px;
+    }
+}
+
+/* --- PAGE TRANSITION --- */
+body {
+    animation: pageFadeIn 0.8s ease-out;
+}
+
+@keyframes pageFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- LAYOUT OVERRIDES --- */
+/* Force 2x2 grid for the Value Prop and Pain Points sections */
+#value .features-grid,
+#pain-points .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 768px) {
+
+    #value .features-grid,
+    #pain-points .features-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- ANIMATION CLASSES --- */
+.comparison-container,
+.form-container,
+.faq-item {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s ease-out;
+}
+
+.comparison-container.visible,
+.form-container.visible,
+.faq-item.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Staggered delay for FAQ items */
+.faq-item:nth-child(1) {
+    transition-delay: 0.1s;
+}
+
+.faq-item:nth-child(2) {
+    transition-delay: 0.2s;
+}
+
+.faq-item:nth-child(3) {
+    transition-delay: 0.3s;
+}
